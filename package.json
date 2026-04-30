@@ -1,5 +1,5 @@
 {
-  "name": "livekit-mongodb-starter",
+  "name": "mongodb-hacker-starter",
   "version": "1.0.0",
   "private": true,
   "description": "LiveKit + MongoDB Atlas voice agent starter (Python or Node agent + Next.js frontend)",
