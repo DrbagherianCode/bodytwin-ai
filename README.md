@@ -7,7 +7,7 @@ For package-specific detail, see [`agent-py/README.md`](./agent-py/README.md), [
 ## Architecture
 
 ```mermaid
-flowchart LR
+flowchart TD
   FE["Next.js Frontend"] <-->|voice| LK["LiveKit Cloud<br/>STT • LLM • TTS"]
   LK <-->|tool calls| Agent["Voice Agent<br/>Python or Node"]
   Agent <-->|5 patterns| Mongo[("MongoDB Atlas")]
