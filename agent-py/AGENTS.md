@@ -28,7 +28,7 @@ Always use the PyMongo Async API (`from pymongo import AsyncMongoClient`). Note 
 
 Embeddings go through Voyage AI (`voyage-3.5-lite`, 1024 dimensions) via `src/tools/embeddings.py`. If you change the model, update `EMBEDDING_DIMENSIONS` and re-run `db/indexes.py` so the vector index dimension matches.
 
-Run `uv run -m db.indexes` once to create the collections and vector indexes, then `uv run -m db.seed` to load sample data.
+DB setup is hoisted to `../db/` so both runtimes share one source of truth. From the repo root run `pnpm db:init` once to create the collections and vector + text search indexes, then `pnpm db:seed` to load sample data.
 
 ## LiveKit Documentation
 

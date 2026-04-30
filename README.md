@@ -8,58 +8,21 @@ For package-specific detail, see [`agent-py/README.md`](./agent-py/README.md), [
 
 ```mermaid
 flowchart LR
-  subgraph Browser
-    FE["Next.js Frontend<br/>(LiveKit components)"]
-  end
-
-  subgraph LiveKit["LiveKit Cloud"]
-    Token["Token route<br/>(/api/token)"]
-    Room["Room + WebRTC"]
-    Inference["LiveKit Inference<br/>STT • LLM • TTS"]
-  end
-
-  subgraph Agent["Voice Agent<br/>(agent-py or agent-ts)"]
-    Entry["entrypoint<br/>parses metadata"]
-    Preload["preload_user<br/>(Pattern 3)"]
-    Tools["@function_tool methods"]
-    Hangup["on_session_end<br/>(Pattern 5)"]
-  end
-
-  subgraph Voyage["Voyage AI"]
-    Embed["voyage-3.5-lite<br/>1024-dim embeddings"]
-  end
-
-  subgraph Mongo["MongoDB Atlas (8.0+)"]
-    Users["users"]
-    Orders["orders"]
-    Knowledge["knowledge<br/>$vectorSearch index"]
-    Memories["memories<br/>$rankFusion: vector + text"]
-    Sessions["sessions"]
-  end
-
-  FE -->|"cookie -> user_id"| Token
-  Token -->|"agent dispatch metadata"| Room
-  Room <-->|"audio in/out"| FE
-  Room -->|"job + metadata"| Entry
-  Entry --> Preload
-  Preload -->|"load profile + memories"| Users
-  Preload --> Memories
-  Room <-->|"voice pipeline"| Inference
-  Inference <-->|"tool calls"| Tools
-  Tools -->|"Pattern 4: CRUD"| Orders
-  Tools -->|"Pattern 1: RAG query"| Knowledge
-  Tools -->|"Pattern 2: remember/recall/search"| Memories
-  Tools -->|"embed query/content"| Embed
-  Hangup -->|"session report"| Sessions
+  FE["Next.js Frontend"] <-->|voice| LK["LiveKit Cloud<br/>STT • LLM • TTS"]
+  LK <-->|tool calls| Agent["Voice Agent<br/>Python or Node"]
+  Agent <-->|5 patterns| Mongo[("MongoDB Atlas")]
+  Agent -->|embeddings| Voyage["Voyage AI"]
 ```
 
-**Pattern legend.** Each labeled edge maps to one of the five integration patterns:
+The frontend talks to LiveKit Cloud over WebRTC. LiveKit handles STT, LLM, and TTS; the agent is invoked through tool calls and reads or writes MongoDB Atlas across all five integration patterns. Voyage AI produces the embeddings used by the vector and hybrid search pipelines.
 
-- **Pattern 1 — RAG with `$vectorSearch`:** `Tools → Knowledge` runs the `search_knowledge` tool, which embeds the query through Voyage and reads from the `knowledge` collection's vector index.
-- **Pattern 2 — Agentic memory with `$rankFusion`:** `Tools → Memories` powers `remember_detail` / `recall_detail` / `search_memories`, combining `$vectorSearch` and `$search` results in a hybrid pipeline.
-- **Pattern 3 — Pre-loaded user context:** `Preload → Users` and `Preload → Memories` warm the chat context with the user's profile and prior memories before the LLM speaks.
-- **Pattern 4 — Function-tool CRUD:** `Tools → Orders` is the canonical example; the same shape applies to any domain collection you swap in.
-- **Pattern 5 — Session report persistence:** `Hangup → Sessions` writes the structured `SessionReport` on disconnect for analytics and audit.
+**The five MongoDB integration patterns:**
+
+1. **RAG with `$vectorSearch`** — `search_knowledge` embeds the query through Voyage and reads from the `knowledge` collection's vector index.
+2. **Agentic memory with `$rankFusion`** — `remember_detail` / `recall_detail` / `search_memories` combine `$vectorSearch` and `$search` over the `memories` collection.
+3. **Pre-loaded user context** — `preload_user` warms the chat context with the user's profile and prior memories before the LLM's first turn.
+4. **Function-tool CRUD** — `lookup_order` is the canonical example; the same shape applies to any domain collection you swap in.
+5. **Session report persistence** — on disconnect, the agent writes the structured `SessionReport` to `sessions` for analytics and audit.
 
 ## Repo layout
 
@@ -77,6 +40,10 @@ code/
 │   ├── src/
 │   ├── tests/
 │   └── package.json
+├── db/                 # shared one-shot setup scripts (collections, indexes, seed data)
+│   ├── indexes.ts
+│   ├── seed.ts
+│   └── lib/            # voyage.ts, env.ts, data.ts
 └── frontend/           # Next.js frontend (pnpm + LiveKit components)
     ├── app/
     ├── components/
@@ -172,10 +139,8 @@ pnpm test:agent-ts      # vitest only
 | `pnpm agent:py:download-files`  | One-time VAD + turn detector model download (Python)                                  |
 | `pnpm agent:ts:start`           | Node agent in production mode                                                         |
 | `pnpm agent:ts:download-files`  | One-time VAD + turn detector model download (Node)                                    |
-| `pnpm db:init`                  | Creates Mongo collections and vector search indexes (`agent-py/src/db/indexes.py`)    |
-| `pnpm db:seed`                  | Inserts sample users, orders, and knowledge docs (`agent-py/src/db/seed.py`)          |
-| `pnpm db:init:ts`               | Same, but driven by the TS implementation (`agent-ts/src/db/indexes.ts`)              |
-| `pnpm db:seed:ts`               | Same, but driven by the TS implementation (`agent-ts/src/db/seed.ts`)                 |
+| `pnpm db:init`                  | Creates Mongo collections and vector + text search indexes (`db/indexes.ts`)          |
+| `pnpm db:seed`                  | Inserts sample users, orders, and knowledge docs (`db/seed.ts`, data in `db/lib/data.ts`) |
 | `pnpm build`                    | Production build of the frontend                                                      |
 | `pnpm start:frontend`           | Runs the built frontend                                                               |
 | `pnpm lint`                     | Lints all three packages in parallel                                                  |
@@ -205,7 +170,7 @@ The agent uses two fields to scope every MongoDB read and write: `user_id` and `
 3. [`components/app/app.tsx`](./frontend/components/app/app.tsx) uses `TokenSource.endpoint('/api/token')`. Same-origin `fetch` auto-attaches cookies, so no client-side code touches the id.
 4. On the agent side, `my_agent` in [`src/agent.py`](./agent-py/src/agent.py) parses `ctx.job.metadata` before `ctx.connect()` so `preload_user` can run in parallel with the room connection.
 
-Console mode (`pnpm agent:py:console`, Python only) has no frontend, so the agent falls back to `DEFAULT_USER_ID = "user_1"` and the seeded profile in [`agent-py/src/db/seed.py`](./agent-py/src/db/seed.py).
+Console mode (`pnpm agent:py:console`, Python only) has no frontend, so the agent falls back to `DEFAULT_USER_ID = "user_1"` and the seeded profile in [`db/lib/data.ts`](./db/lib/data.ts).
 
 This is anonymous identity, not authentication. Clearing the cookie produces a new id and a new user profile on the agent side. For production, replace the `req.cookies.get(COOKIE_NAME)` block in `app/api/token/route.ts` with your session lookup (NextAuth, Clerk, Supabase, Better-Auth) and fall through to the anonymous cookie only for guests. The frontend and agent stay the same.
 

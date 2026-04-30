@@ -15,9 +15,7 @@
     "test:watch": "vitest",
     "dev": "pnpm run build && node dist/main.js dev",
     "download-files": "pnpm run build && node dist/main.js download-files",
-    "start": "node dist/main.js start",
-    "db:init": "tsx src/db/indexes.ts",
-    "db:seed": "tsx src/db/seed.ts"
+    "start": "node dist/main.js start"
   },
   "engines": {
     "node": ">=22.0.0",

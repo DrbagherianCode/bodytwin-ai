@@ -23,10 +23,8 @@
     "agent:ts:start": "pnpm --dir agent-ts start",
     "agent:ts:download-files": "pnpm --dir agent-ts download-files",
 
-    "db:init": "uv --directory agent-py run -m db.indexes",
-    "db:seed": "uv --directory agent-py run -m db.seed",
-    "db:init:ts": "pnpm --dir agent-ts db:init",
-    "db:seed:ts": "pnpm --dir agent-ts db:seed",
+    "db:init": "tsx db/indexes.ts",
+    "db:seed": "tsx db/seed.ts",
 
     "build": "pnpm --dir frontend build",
     "start:frontend": "pnpm --dir frontend start",
@@ -42,7 +40,10 @@
     "test:agent-ts": "pnpm --dir agent-ts test"
   },
   "devDependencies": {
-    "concurrently": "^9.0.0"
+    "concurrently": "^9.0.0",
+    "dotenv": "^17.4.1",
+    "mongodb": "^7.2.0",
+    "tsx": "^4.21.0"
   },
   "packageManager": "pnpm@10.18.0",
   "engines": {

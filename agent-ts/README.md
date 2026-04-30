@@ -33,7 +33,7 @@ agent-ts/
 ## Prerequisites
 
 - Node 22+ and [pnpm](https://pnpm.io/) 10+
-- MongoDB Atlas cluster on **MongoDB 8.0 or later** — required for the `$rankFusion` hybrid retrieval pipeline in `tools/memory.searchMemory`. M10+ dedicated clusters run 8.0 by default; check your cluster's server version in the Atlas UI before running `db/indexes.ts` if you are on a shared-tier (M0/M2/M5) cluster.
+- MongoDB Atlas cluster on **MongoDB 8.0 or later** — required for the `$rankFusion` hybrid retrieval pipeline in `tools/memory.searchMemory`. M10+ dedicated clusters run 8.0 by default; check your cluster's server version in the Atlas UI before running `pnpm db:init` if you are on a shared-tier (M0/M2/M5) cluster.
 - LiveKit Cloud project
 - Voyage AI API key — [free tier](https://www.voyageai.com/pricing) covers prototypes
 
@@ -60,14 +60,14 @@ You can populate `LIVEKIT_*` with `lk app env -w -d .env.local` if you've authen
 
 ## Initialize MongoDB
 
-Run once after configuring `MONGODB_URI`:
+The DB-setup scripts are hoisted to the repo root so they're shared with the Python sibling. From the repo root, run once after configuring `MONGODB_URI`:
 
 ```bash
-pnpm db:init   # creates collections and vector/search indexes
+pnpm db:init   # creates collections and vector + text search indexes
 pnpm db:seed   # inserts sample users, orders, and knowledge docs
 ```
 
-The vector and Atlas Search indexes need ~1-2 minutes to become queryable on Atlas after creation.
+These scripts live at `../db/indexes.ts` and `../db/seed.ts`; the seed data is in `../db/lib/data.ts`. The vector and Atlas Search indexes need ~1-2 minutes to become queryable on Atlas after creation.
 
 ## Run the agent
 
@@ -131,10 +131,10 @@ The resolved values are also stashed on `ctx.proc.userData` so the shutdown call
 
 This is intentionally minimal. To adapt it:
 
-- Swap `users`/`orders`/`knowledge` for your own collections in `src/db/indexes.ts` and `src/db/seed.ts`.
+- Swap `users`/`orders`/`knowledge` for your own collections in `../db/indexes.ts` (schema + indexes) and `../db/lib/data.ts` (seed values).
 - Add or remove `llm.tool` definitions on `MongoAgent` in `src/agent.ts`.
 - Adjust the agent's `instructions` constant to match your domain.
-- Change the embedding model in `src/tools/embeddings.ts` (e.g., `voyage-3-large` for higher quality, or `voyage-multilingual-2` for non-English content). Update the `numDimensions` in `src/db/indexes.ts` to match.
+- Change the embedding model in `src/tools/embeddings.ts` (e.g., `voyage-3-large` for higher quality, or `voyage-multilingual-2` for non-English content). Update `EMBEDDING_DIMENSIONS` in `../db/lib/voyage.ts` to match, then re-run `pnpm db:init` so the vector index dimension is rebuilt.
 
 ## License
 

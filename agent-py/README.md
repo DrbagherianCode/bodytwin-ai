@@ -58,14 +58,14 @@ You can populate `LIVEKIT_*` with `lk app env -w -d .env.local` if you've authen
 
 ## Initialize MongoDB
 
-Run once after configuring `MONGODB_URI`:
+The DB-setup scripts are hoisted to the repo root so they're shared with the Node sibling. From the repo root, run once after configuring `MONGODB_URI`:
 
 ```bash
-uv run -m db.indexes   # creates collections and vector search indexes
-uv run -m db.seed      # inserts sample users, orders, and knowledge docs
+pnpm db:init   # creates collections and vector + text search indexes
+pnpm db:seed   # inserts sample users, orders, and knowledge docs
 ```
 
-The vector indexes need ~1-2 minutes to become queryable on Atlas after creation.
+These scripts live at `../db/indexes.ts` and `../db/seed.ts`; the seed data is in `../db/lib/data.ts`. The vector indexes need ~1-2 minutes to become queryable on Atlas after creation.
 
 ## Run the agent
 
