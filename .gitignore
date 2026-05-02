@@ -25,3 +25,19 @@ Thumbs.db
 # Editor
 .vscode/
 .idea/
+
+# Local secrets
+.env
+.env.local
+*.env.local
+frontend/.env.local
+agent-py/.env.local
+agent-ts/.env.local
+
+
+# Local dependencies and caches
+node_modules/
+frontend/node_modules/
+agent-py/.venv/
+.cache/
+

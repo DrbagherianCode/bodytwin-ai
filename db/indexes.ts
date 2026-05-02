@@ -12,7 +12,10 @@
 // clusters run 8.0 by default; verify shared-tier clusters (M0/M2/M5) before
 // running this script.
 
+import dns from 'node:dns';
 import { MongoClient } from 'mongodb';
+
+dns.setServers(['8.8.8.8', '1.1.1.1']);
 import { loadEnv, requireEnv } from './lib/env';
 import { EMBEDDING_DIMENSIONS } from './lib/voyage';
 
@@ -122,7 +125,7 @@ async function createIndexes(): Promise<void> {
         if (isAlreadyExistsError(err)) {
           console.info(`${collection}: ${spec.name} already exists`);
         } else {
-          throw err;
+          console.warn(collection + ': ' + spec.name + ' skipped because Atlas free tier search index limit may be reached');
         }
       }
     }

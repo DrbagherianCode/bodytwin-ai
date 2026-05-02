@@ -6,7 +6,10 @@
 //
 // Sample data lives in db/lib/data.ts. Edit there to customize.
 
+import dns from 'node:dns';
 import { MongoClient } from 'mongodb';
+
+dns.setServers(['8.8.8.8', '1.1.1.1']);
 import { loadEnv, requireEnv } from './lib/env';
 import { KNOWLEDGE_INPUTS, ORDERS, USERS } from './lib/data';
 import { embedTexts } from './lib/voyage';
